@@ -1,0 +1,186 @@
+--[[
+   MOSES: SUPERMAN GENESIS V23 (DUDES BATTLEGROUNDS)
+   - Flight: Superman-style Tilt & Glide (Press E)
+   - Utility: Noclip & Divine Vacuum (V)
+   - Fix: Box-Adornment ESP (Always Visible)
+]]
+
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UIS = game:GetService("UserInputService")
+local lp = Players.LocalPlayer
+local pGui = lp:WaitForChild("PlayerGui")
+
+
+-- 1. CLEANUP
+if pGui:FindFirstChild("MosesSupermanV23") then pGui.MosesSupermanV23:Destroy() end
+
+
+local sg = Instance.new("ScreenGui", pGui)
+sg.Name = "MosesSupermanV23"
+sg.ResetOnSpawn = false
+
+
+-- 2. THE UI (TUFF NEON STYLE)
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 520, 0, 380)
+main.Position = UDim2.new(0.5, -260, 0.5, -190)
+main.BackgroundColor3 = Color3.fromRGB(2, 2, 8)
+main.Active, main.Draggable = true, true
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 15)
+local mStroke = Instance.new("UIStroke", main)
+mStroke.Color, mStroke.Thickness = Color3.fromRGB(0, 255, 255), 3
+
+
+-- THE VECTOR MOSES ICON (STAY TUFF)
+local icon = Instance.new("Frame", main)
+icon.Size = UDim2.new(0, 100, 0, 100)
+icon.Position = UDim2.new(0, -20, 0, -20)
+icon.BackgroundColor3 = Color3.fromRGB(5, 5, 15)
+Instance.new("UICorner", icon).CornerRadius = UDim.new(1, 0)
+local iStr = Instance.new("UIStroke", icon)
+iStr.Color, iStr.Thickness = Color3.fromRGB(0, 255, 255), 2
+
+
+local staff = Instance.new("Frame", icon)
+staff.Size = UDim2.new(0, 5, 0, 75)
+staff.Position = UDim2.new(0.5, 0, 0.12, 0)
+staff.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+Instance.new("UICorner", staff)
+
+
+-- 3. FUNCTION ENGINE
+local flags = {fly = false, noclip = false, speed = false, esp = false, vacuum = false}
+local flySpeed = 160
+
+
+local function makeBtn(name, x, y, flag)
+   local b = Instance.new("TextButton", main)
+   b.Size = UDim2.new(0, 230, 0, 50)
+   b.Position = UDim2.new(0, x, 0, y)
+   b.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
+   b.Text = name .. " : [ OFF ]"
+   b.TextColor3 = Color3.fromRGB(0, 255, 255)
+   b.Font = Enum.Font.GothamBold
+   b.TextSize = 13
+   Instance.new("UICorner", b).CornerRadius = UDim.new(0, 10)
+  
+   b.MouseButton1Click:Connect(function()
+       flags[flag] = not flags[flag]
+       b.Text = name .. " : [ " .. (flags[flag] and "ON" or "OFF") .. " ]"
+       b.BackgroundColor3 = flags[flag] and Color3.fromRGB(0, 130, 255) or Color3.fromRGB(15, 15, 25)
+       b.TextColor3 = flags[flag] and Color3.new(1, 1, 1) or Color3.fromRGB(0, 255, 255)
+   end)
+end
+
+
+makeBtn("SUPERMAN FLY (E)", 20, 100, "fly")
+makeBtn("GOD-SPEED (160)", 270, 100, "speed")
+makeBtn("INFINITE NOCLIP", 20, 170, "noclip")
+makeBtn("DIVINE VISION (ESP)", 270, 170, "esp")
+makeBtn("DIVINE VACUUM (V)", 20, 240, "vacuum")
+
+
+-- 4. SUPERMAN PHYSICS ENGINE
+RunService.Stepped:Connect(function()
+   local char = lp.Character
+   if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+   local root = char.HumanoidRootPart
+   local hum = char.Humanoid
+
+
+   -- SPEED LOCK
+   if flags.speed then hum.WalkSpeed = 160 end
+
+
+   -- NOCLIP LOGIC
+   if flags.noclip or flags.fly then
+       for _, part in pairs(char:GetDescendants()) do
+           if part:IsA("BasePart") then part.CanCollide = false end
+       end
+   end
+
+
+   -- SUPERMAN FLY LOGIC
+   if flags.fly then
+       local cam = workspace.CurrentCamera
+       local direction = Vector3.new(0, 0, 0)
+      
+       if UIS:IsKeyDown(Enum.KeyCode.W) then direction = direction + cam.CFrame.LookVector end
+       if UIS:IsKeyDown(Enum.KeyCode.S) then direction = direction - cam.CFrame.LookVector end
+       if UIS:IsKeyDown(Enum.KeyCode.D) then direction = direction + cam.CFrame.RightVector end
+       if UIS:IsKeyDown(Enum.KeyCode.A) then direction = direction - cam.CFrame.RightVector end
+      
+       root.Velocity = direction * flySpeed
+      
+       -- superman tilt effect
+       if direction.Magnitude > 0 then
+           root.CFrame = CFrame.new(root.Position, root.Position + direction) * CFrame.Angles(math.rad(-90), 0, 0)
+       else
+           root.Velocity = Vector3.new(0, 0, 0)
+       end
+       hum.PlatformStand = true
+   else
+       hum.PlatformStand = false
+   end
+
+
+   -- DIVINE VACUUM (V)
+   if flags.vacuum and UIS:IsKeyDown(Enum.KeyCode.V) then
+       for _, p in pairs(Players:GetPlayers()) do
+           if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+               local eRoot = p.Character.HumanoidRootPart
+               if (root.Position - eRoot.Position).Magnitude < 50 then
+                   eRoot.CFrame = root.CFrame * CFrame.new(0, 0, -5) -- Pulls them 5 studs in front of you
+               end
+           end
+       end
+   end
+end)
+
+
+-- 5. ESP BOXES (BYPASSES HIDING)
+task.spawn(function()
+   while task.wait(0.5) do
+       for _, p in pairs(Players:GetPlayers()) do
+           if p ~= lp and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+               local eRoot = p.Character.HumanoidRootPart
+               local box = eRoot:FindFirstChild("MosesESP")
+               if flags.esp then
+                   if not box then
+                       box = Instance.new("BoxHandleAdornment", eRoot)
+                       box.Name = "MosesESP"
+                       box.Size = Vector3.new(4, 6, 1)
+                       box.Color3 = Color3.fromRGB(0, 255, 255)
+                       box.AlwaysOnTop = true
+                       box.ZIndex = 5
+                       box.Transparency = 0.6
+                       box.Adornee = eRoot
+                   end
+               elseif box then box:Destroy() end
+           end
+       end
+   end
+end)
+
+
+-- HOTKEYS
+UIS.InputBegan:Connect(function(input, gpe)
+   if not gpe and input.KeyCode == Enum.KeyCode.E then flags.fly = not flags.fly end
+end)
+
+
+-- TOGGLE BUTTON
+local tBtn = Instance.new("TextButton", sg)
+tBtn.Size = UDim2.new(0, 45, 0, 45)
+tBtn.Position = UDim2.new(0, 10, 0.5, -22)
+tBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+tBtn.Text = "M"
+tBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", tBtn).CornerRadius = UDim.new(0, 10)
+tBtn.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
+
+
+print("MOSES SUPERMAN V23: FLY LIKE A GOD. 🔱😤")
+
